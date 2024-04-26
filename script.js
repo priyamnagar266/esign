@@ -4,40 +4,35 @@ document.addEventListener("DOMContentLoaded", () => {
     const colorInput = document.getElementById('color');
     const clearBtn = document.getElementById('clearBtn');
     const downloadBtn = document.getElementById('downloadBtn');
-
+    
     let isDrawing = false;
-    let points = []; // Store points for drawing smooth lines
-    let lastPoint = null; // Store the last point to connect lines
 
-    function startDrawing(e) {
-        isDrawing = true;
-        points = []; // Reset points array
-        lastPoint = { x: e.clientX, y: e.clientY };
-        draw(e.clientX, e.clientY); // Draw a single point to start the path immediately
-    }
-
-    function draw(x, y) {
+    function draw(e) {
         if (!isDrawing) return;
-        const currentPoint = { x, y };
-        points.push(currentPoint);
 
         ctx.strokeStyle = colorInput.value;
         ctx.lineWidth = 2;
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
 
-        if (points.length > 1) {
-            ctx.beginPath();
-            ctx.moveTo(lastPoint.x, lastPoint.y);
-            ctx.lineTo(currentPoint.x, currentPoint.y);
-            ctx.stroke();
-        }
+        const rect = canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
 
-        lastPoint = currentPoint;
+        ctx.lineTo(x, y);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+    }
+
+    function startDrawing(e) {
+        isDrawing = true;
+        draw(e);
     }
 
     function endDrawing() {
         isDrawing = false;
+        ctx.beginPath(); // Start a new path after drawing
     }
 
     function clearCanvas() {
@@ -55,30 +50,33 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     canvas.addEventListener('mousedown', startDrawing);
-    canvas.addEventListener('mousemove', (e) => {
-        if (isDrawing) {
-            draw(e.clientX, e.clientY);
-        }
-    });
+    canvas.addEventListener('mousemove', draw);
     canvas.addEventListener('mouseup', endDrawing);
     canvas.addEventListener('mouseout', endDrawing);
 
     // Touch Events for Mobile Devices
     canvas.addEventListener('touchstart', (e) => {
         const touch = e.touches[0];
-        startDrawing(touch);
-        e.preventDefault(); // Prevent default behavior to avoid interference with mouse events
+        const mouseEvent = new MouseEvent('mousedown', {
+            clientX: touch.clientX,
+            clientY: touch.clientY
+        });
+        canvas.dispatchEvent(mouseEvent);
     });
 
     canvas.addEventListener('touchmove', (e) => {
         const touch = e.touches[0];
-        if (isDrawing) {
-            draw(touch.clientX, touch.clientY);
-        }
-        e.preventDefault(); // Prevent default behavior to avoid interference with mouse events
+        const mouseEvent = new MouseEvent('mousemove', {
+            clientX: touch.clientX,
+            clientY: touch.clientY
+        });
+        canvas.dispatchEvent(mouseEvent);
     });
 
-    canvas.addEventListener('touchend', endDrawing);
+    canvas.addEventListener('touchend', () => {
+        const mouseEvent = new MouseEvent('mouseup', {});
+        canvas.dispatchEvent(mouseEvent);
+    });
 
     clearBtn.addEventListener('click', clearCanvas);
     downloadBtn.addEventListener('click', downloadSignature);
